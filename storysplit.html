@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0D11">
+<title>StorySplit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0D11;
+  --panel:#14171E;
+  --panel-2:#1B1F28;
+  --line:#272C38;
+  --line-soft:#1E222C;
+  --text:#E8EAEF;
+  --muted:#79808F;
+  --accent:#7B6CFF;
+  --accent-dim:#4E45A6;
+  --signal:#FFB454;
+  --ok:#4ED6A1;
+  --err:#FF6B7E;
+  --display:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--display);
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding:0 0 64px;
+}
+
+/* ---------- header ---------- */
+header{
+  border-bottom:1px solid var(--line);
+  padding:22px 20px 18px;
+  display:flex;
+  align-items:baseline;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.wordmark{
+  font-weight:700;
+  font-size:21px;
+  letter-spacing:-0.02em;
+  margin:0;
+}
+.wordmark span{color:var(--accent)}
+.tagline{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+}
+
+.wrap{max-width:820px;margin:0 auto;padding:0 20px}
+
+/* ---------- shared panel ---------- */
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:18px;
+  margin-top:18px;
+}
+.panel-label{
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin:0 0 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+
+/* ---------- drop zone ---------- */
+#drop{
+  border:1px dashed var(--line);
+  border-radius:10px;
+  background:var(--panel);
+  padding:38px 20px;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .18s, background .18s;
+  margin-top:22px;
+}
+#drop:hover,#drop.hot{border-color:var(--accent);background:var(--panel-2)}
+#drop:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#drop h2{font-size:17px;font-weight:500;margin:0 0 6px}
+#drop p{color:var(--muted);font-size:13px;margin:0}
+#file{display:none}
+
+/* ---------- source readout ---------- */
+.readout{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:14px;
+}
+.stat .k{
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+  display:block;
+  margin-bottom:3px;
+}
+.stat .v{
+  font-family:var(--mono);
+  font-size:17px;
+  font-weight:500;
+}
+.filename{
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--muted);
+  word-break:break-all;
+  margin:14px 0 0;
+  padding-top:12px;
+  border-top:1px solid var(--line-soft);
+}
+
+/* ---------- controls ---------- */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{
+  font-family:var(--mono);
+  font-size:13px;
+  background:var(--panel-2);
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:8px 14px;
+  cursor:pointer;
+  transition:border-color .15s,color .15s,background .15s;
+}
+.chip:hover{border-color:var(--accent-dim)}
+.chip[aria-pressed="true"]{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:rgba(123,108,255,.09);
+}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.field{flex:1;min-width:150px}
+.field label{
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+  display:block;
+  margin-bottom:6px;
+}
+input[type=number],input[type=text]{
+  width:100%;
+  background:var(--bg);
+  border:1px solid var(--line);
+  border-radius:6px;
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:15px;
+  padding:9px 11px;
+}
+input:focus{outline:none;border-color:var(--accent)}
+
+.modes{margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft)}
+.mode-note{
+  font-size:12.5px;
+  color:var(--muted);
+  margin:10px 0 0;
+  line-height:1.55;
+}
+
+/* ---------- SIGNATURE: cut strip ---------- */
+#stripPanel{display:none}
+.strip{
+  display:flex;
+  gap:3px;
+  height:62px;
+  margin-bottom:8px;
+}
+.seg{
+  position:relative;
+  border-radius:4px;
+  background:linear-gradient(180deg,var(--accent-dim),#3A3379);
+  border:1px solid var(--accent);
+  min-width:3px;
+  overflow:hidden;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding-bottom:5px;
+}
+.seg.tail{
+  background:repeating-linear-gradient(135deg,#4A3A1E 0 7px,#3B2F19 7px 14px);
+  border-color:var(--signal);
+}
+/* sprocket notches — reads as film perforation at each cut */
+.seg::before,.seg::after{
+  content:"";
+  position:absolute;
+  left:0;right:0;
+  height:7px;
+  background-image:radial-gradient(circle at 5px 50%, var(--bg) 2px, transparent 2.2px);
+  background-size:12px 7px;
+  opacity:.55;
+}
+.seg::before{top:0}
+.seg::after{bottom:0}
+.seg .n{
+  font-family:var(--mono);
+  font-size:10px;
+  font-weight:700;
+  color:#fff;
+  position:relative;
+  z-index:1;
+  text-shadow:0 1px 3px rgba(0,0,0,.7);
+}
+.ticks{
+  display:flex;
+  justify-content:space-between;
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--muted);
+}
+.strip-legend{
+  font-size:12.5px;
+  color:var(--muted);
+  margin:12px 0 0;
+  padding-top:12px;
+  border-top:1px solid var(--line-soft);
+}
+.strip-legend b{color:var(--text);font-weight:500;font-family:var(--mono)}
+.key{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:baseline;margin-right:5px}
+.key.full{background:var(--accent)}
+.key.tail{background:var(--signal)}
+
+/* ---------- action ---------- */
+#go{
+  width:100%;
+  margin-top:20px;
+  background:var(--accent);
+  color:#0B0D11;
+  border:none;
+  border-radius:8px;
+  font-family:var(--display);
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:-0.01em;
+  padding:15px;
+  cursor:pointer;
+  transition:filter .15s;
+}
+#go:hover:not(:disabled){filter:brightness(1.12)}
+#go:disabled{background:var(--panel-2);color:var(--muted);cursor:default}
+#go:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+
+/* ---------- progress + log ---------- */
+#work{display:none}
+.bar{
+  height:3px;
+  background:var(--line);
+  border-radius:2px;
+  overflow:hidden;
+  margin-bottom:14px;
+}
+.bar i{
+  display:block;
+  height:100%;
+  width:0%;
+  background:var(--accent);
+  transition:width .25s ease;
+}
+#log{
+  font-family:var(--mono);
+  font-size:11.5px;
+  line-height:1.75;
+  color:var(--muted);
+  max-height:190px;
+  overflow-y:auto;
+  white-space:pre-wrap;
+  word-break:break-word;
+  margin:0;
+}
+#log .ok{color:var(--ok)}
+#log .err{color:var(--err)}
+#log .hi{color:var(--text)}
+
+/* ---------- results ---------- */
+#results{display:none}
+.res{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:11px 0;
+  border-bottom:1px solid var(--line-soft);
+}
+.res:last-child{border-bottom:none}
+.res .idx{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--muted);
+  width:22px;
+  flex-shrink:0;
+}
+.res .meta{flex:1;min-width:0}
+.res .nm{font-family:var(--mono);font-size:12.5px;word-break:break-all}
+.res .du{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+.res .du.warn{color:var(--signal)}
+.res a{
+  font-family:var(--mono);
+  font-size:11px;
+  text-decoration:none;
+  color:var(--accent);
+  border:1px solid var(--accent-dim);
+  border-radius:5px;
+  padding:6px 11px;
+  flex-shrink:0;
+  transition:background .15s;
+}
+.res a:hover{background:rgba(123,108,255,.12)}
+.res a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.verify{
+  font-size:12.5px;
+  color:var(--muted);
+  margin:14px 0 0;
+  padding-top:12px;
+  border-top:1px solid var(--line-soft);
+}
+.verify b{font-family:var(--mono);color:var(--text);font-weight:500}
+
+footer{
+  max-width:820px;
+  margin:26px auto 0;
+  padding:0 20px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.65;
+}
+footer b{color:var(--text);font-weight:500}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+}
+@media (max-width:560px){
+  .strip{height:52px}
+  #drop{padding:30px 16px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 class="wordmark">Story<span>Split</span></h1>
+  <span class="tagline">Cut long video into story-length slides</span>
+</header>
+
+<div class="wrap">
+
+  <div id="drop" tabindex="0" role="button" aria-label="Choose a video file">
+    <h2>Choose a video</h2>
+    <p>Tap to browse, or drop a file here. Nothing uploads — it all runs on this device.</p>
+  </div>
+  <input type="file" id="file" accept="video/*">
+
+  <!-- source -->
+  <section class="panel" id="srcPanel" style="display:none">
+    <p class="panel-label">Source</p>
+    <div class="readout">
+      <div class="stat"><span class="k">Duration</span><span class="v" id="sDur">—</span></div>
+      <div class="stat"><span class="k">Resolution</span><span class="v" id="sRes">—</span></div>
+      <div class="stat"><span class="k">File size</span><span class="v" id="sSize">—</span></div>
+    </div>
+    <p class="filename" id="sName"></p>
+  </section>
+
+  <!-- controls -->
+  <section class="panel" id="ctrlPanel" style="display:none">
+    <p class="panel-label">Cut settings</p>
+
+    <div class="chips" id="presets">
+      <button class="chip" data-len="60" aria-pressed="true">60s · Stories</button>
+      <button class="chip" data-len="30" aria-pressed="false">30s</button>
+      <button class="chip" data-len="15" aria-pressed="false">15s</button>
+      <button class="chip" data-len="90" aria-pressed="false">90s · Reels</button>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="len">Segment length (seconds)</label>
+        <input type="number" id="len" value="60" min="1" step="1">
+      </div>
+      <div class="field">
+        <label for="prefix">Filename prefix</label>
+        <input type="text" id="prefix" value="segment">
+      </div>
+    </div>
+
+    <div class="modes">
+      <p class="panel-label" style="margin-bottom:10px">Cut precision</p>
+      <div class="chips" id="modes">
+        <button class="chip" data-mode="copy" aria-pressed="true">Fast</button>
+        <button class="chip" data-mode="exact" aria-pressed="false">Exact</button>
+      </div>
+      <p class="mode-note" id="modeNote">
+        Fast copies the existing video stream, so it finishes in seconds — but cuts land on the
+        nearest keyframe, so segments can run a little over or under. Good enough for Stories.
+      </p>
+    </div>
+  </section>
+
+  <!-- SIGNATURE: live cut strip -->
+  <section class="panel" id="stripPanel">
+    <p class="panel-label"><span>Cut preview</span><span id="stripCount"></span></p>
+    <div class="strip" id="strip"></div>
+    <div class="ticks"><span>00:00</span><span id="tickEnd">—</span></div>
+    <p class="strip-legend" id="stripLegend"></p>
+  </section>
+
+  <button id="go" disabled>Split video</button>
+
+  <!-- progress -->
+  <section class="panel" id="work">
+    <p class="panel-label">Progress</p>
+    <div class="bar"><i id="barFill"></i></div>
+    <pre id="log"></pre>
+  </section>
+
+  <!-- results -->
+  <section class="panel" id="results">
+    <p class="panel-label"><span>Segments</span><span id="resCount"></span></p>
+    <div id="resList"></div>
+    <p class="verify" id="verify"></p>
+  </section>
+
+</div>
+
+<footer>
+  <b>Privacy:</b> your video never leaves this device — all processing happens in the browser.<br>
+  <b>Heads up:</b> very large files (roughly over 500&nbsp;MB) can exhaust browser memory, especially on
+  a phone. If a split fails, trim the source down first or use the desktop version.
+</footer>
+
+<!-- Prefer the local copy (same-origin, fast, works offline). Fall back to the
+     CDN if the vendor folder hasn't been set up yet via get_vendor.py -->
+<script src="vendor/ffmpeg.js"
+        onerror="var s=document.createElement('script');s.src='https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js';document.head.appendChild(s);"></script>
+<script>
+"use strict";
+
+const CDN_FFMPEG = 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd';
+const CDN_CORE   = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+
+let ffmpeg = null;
+let ffmpegReady = false;
+let sourceFile = null;
+let sourceDuration = 0;
+let segLength = 60;
+let mode = 'copy';
+let objectUrls = [];
+
+// ---------- elements ----------
+const $ = id => document.getElementById(id);
+const drop = $('drop'), fileInput = $('file');
+const srcPanel = $('srcPanel'), ctrlPanel = $('ctrlPanel'), stripPanel = $('stripPanel');
+const goBtn = $('go'), work = $('work'), barFill = $('barFill'), logEl = $('log');
+const results = $('results'), resList = $('resList'), verifyEl = $('verify');
+
+// ---------- helpers ----------
+function tc(sec){
+  if(!isFinite(sec)) return '—';
+  const s = Math.max(0, sec);
+  const m = Math.floor(s/60), r = s - m*60;
+  return String(m).padStart(2,'0') + ':' + r.toFixed(2).padStart(5,'0');
+}
+function human(bytes){
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
+  if(bytes < 1024*1024*1024) return (bytes/(1024*1024)).toFixed(1) + ' MB';
+  return (bytes/(1024*1024*1024)).toFixed(2) + ' GB';
+}
+function log(msg, cls){
+  const span = document.createElement('span');
+  if(cls) span.className = cls;
+  span.textContent = msg + '\n';
+  logEl.appendChild(span);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function segmentPlan(){
+  if(!sourceDuration || !segLength) return [];
+  const plan = [];
+  let t = 0, i = 0;
+  while(t < sourceDuration - 0.05){
+    const dur = Math.min(segLength, sourceDuration - t);
+    plan.push({ index: ++i, start: t, duration: dur, tail: dur < segLength - 0.05 });
+    t += segLength;
+  }
+  return plan;
+}
+
+// ---------- signature: live cut strip ----------
+function drawStrip(){
+  const plan = segmentPlan();
+  const strip = $('strip');
+  strip.innerHTML = '';
+  if(!plan.length){ stripPanel.style.display='none'; return; }
+  stripPanel.style.display = 'block';
+
+  plan.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'seg' + (p.tail ? ' tail' : '');
+    // width proportional to real duration, floored so short tails stay visible
+    el.style.flexGrow = Math.max(p.duration, sourceDuration * 0.04);
+    el.style.flexBasis = '0';
+    el.title = `Segment ${p.index} — ${tc(p.start)} to ${tc(p.start + p.duration)}`;
+    if(plan.length <= 20){
+      const n = document.createElement('span');
+      n.className = 'n';
+      n.textContent = p.index;
+      el.appendChild(n);
+    }
+    strip.appendChild(el);
+  });
+
+  $('tickEnd').textContent = tc(sourceDuration);
+  $('stripCount').textContent = plan.length + (plan.length === 1 ? ' segment' : ' segments');
+
+  const tail = plan.find(p => p.tail);
+  let legend = `<span class="key full"></span>${plan.length - (tail?1:0)} full segment(s) at <b>${segLength}s</b>`;
+  if(tail) legend += ` &nbsp;·&nbsp; <span class="key tail"></span>final segment runs <b>${tail.duration.toFixed(2)}s</b>`;
+  $('stripLegend').innerHTML = legend;
+
+  goBtn.disabled = false;
+  goBtn.textContent = `Split into ${plan.length} segment${plan.length===1?'':'s'}`;
+}
+
+// ---------- file intake ----------
+drop.addEventListener('click', () => fileInput.click());
+drop.addEventListener('keydown', e => {
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fileInput.click(); }
+});
+['dragenter','dragover'].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('hot'); }));
+['dragleave','drop'].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('hot'); }));
+drop.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if(f) loadSource(f);
+});
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if(f) loadSource(f);
+});
+
+function loadSource(f){
+  sourceFile = f;
+  results.style.display = 'none';
+  work.style.display = 'none';
+  logEl.innerHTML = '';
+
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  const url = URL.createObjectURL(f);
+  video.src = url;
+
+  video.onloadedmetadata = () => {
+    sourceDuration = video.duration;
+    $('sDur').textContent  = tc(sourceDuration);
+    $('sRes').textContent  = video.videoWidth ? `${video.videoWidth}×${video.videoHeight}` : '—';
+    $('sSize').textContent = human(f.size);
+    $('sName').textContent = f.name;
+    srcPanel.style.display = 'block';
+    ctrlPanel.style.display = 'block';
+    drop.querySelector('h2').textContent = 'Choose a different video';
+    URL.revokeObjectURL(url);
+    drawStrip();
+  };
+  video.onerror = () => {
+    URL.revokeObjectURL(url);
+    srcPanel.style.display = 'none';
+    ctrlPanel.style.display = 'none';
+    stripPanel.style.display = 'none';
+    goBtn.disabled = true;
+    work.style.display = 'block';
+    log("Couldn't read that file as video. Try an MP4 or MOV.", 'err');
+  };
+}
+
+// ---------- controls ----------
+$('presets').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if(!b) return;
+  segLength = parseFloat(b.dataset.len);
+  $('len').value = segLength;
+  [...$('presets').children].forEach(c => c.setAttribute('aria-pressed', c === b));
+  drawStrip();
+});
+$('len').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  if(v > 0){
+    segLength = v;
+    [...$('presets').children].forEach(c =>
+      c.setAttribute('aria-pressed', parseFloat(c.dataset.len) === v));
+    drawStrip();
+  }
+});
+$('modes').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if(!b) return;
+  mode = b.dataset.mode;
+  [...$('modes').children].forEach(c => c.setAttribute('aria-pressed', c === b));
+  $('modeNote').textContent = mode === 'copy'
+    ? 'Fast copies the existing video stream, so it finishes in seconds — but cuts land on the nearest keyframe, so segments can run a little over or under. Good enough for Stories.'
+    : 'Exact re-encodes each segment so cuts land on the precise second. Much slower — expect minutes per segment on a phone — but every segment is exactly the length you set.';
+});
+
+// ---------- ffmpeg boot ----------
+async function toBlobURL(url, type, patch){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`Couldn't fetch ${url} (${res.status})`);
+  let blob;
+  if(patch){
+    blob = new Blob([patch(await res.text())], { type });
+  } else {
+    blob = new Blob([await res.blob()], { type });
+  }
+  return URL.createObjectURL(blob);
+}
+
+// Are the local vendor files present? If so we use plain same-origin URLs,
+// which avoids blob URLs and cross-origin workers entirely.
+async function vendorAvailable(){
+  try {
+    const names = ['ffmpeg.js','worker.js','const.js','errors.js','ffmpeg-core.js','ffmpeg-core.wasm'];
+    const checks = await Promise.all(
+      names.map(n => fetch('vendor/' + n, { method:'HEAD' }).then(r => r.ok).catch(() => false))
+    );
+    return checks.every(Boolean);
+  } catch { return false; }
+}
+
+async function bootFFmpeg(){
+  if(ffmpegReady) return;
+  if(!window.FFmpegWASM) throw new Error('ffmpeg library failed to load — check vendor/ffmpeg.js and your connection.');
+
+  ffmpeg = new FFmpegWASM.FFmpeg();
+  ffmpeg.on('log', ({ message }) => {
+    if(/error|invalid|failed/i.test(message)) log('  ' + message, 'err');
+  });
+
+  const abs = p => new URL(p, location.href).href;
+  let opts;
+
+  if(await vendorAvailable()){
+    log('Loading video engine from local files…');
+    opts = {
+      coreURL: abs('vendor/ffmpeg-core.js'),
+      wasmURL: abs('vendor/ffmpeg-core.wasm'),
+      classWorkerURL: abs('vendor/worker.js'),
+    };
+  } else {
+    // The worker is created as a module worker, and browsers block module
+    // workers loaded cross-origin — so a CDN fallback can't work here. The
+    // vendor folder is required.
+    throw new Error(
+      'Local engine files are missing. Run "py get_vendor.py" in the StorySplit folder, then reload.'
+    );
+  }
+
+  await ffmpeg.load(opts);
+  ffmpegReady = true;
+  log('Engine ready.', 'ok');
+}
+
+// ---------- measure a produced segment ----------
+function measure(blob){
+  return new Promise(resolve => {
+    const v = document.createElement('video');
+    const u = URL.createObjectURL(blob);
+    const done = d => { URL.revokeObjectURL(u); resolve(d); };
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => done(v.duration);
+    v.onerror = () => done(NaN);
+    v.src = u;
+  });
+}
+
+// ---------- run ----------
+goBtn.addEventListener('click', async () => {
+  const plan = segmentPlan();
+  if(!plan.length || !sourceFile) return;
+
+  objectUrls.forEach(URL.revokeObjectURL);
+  objectUrls = [];
+  resList.innerHTML = '';
+  results.style.display = 'none';
+  logEl.innerHTML = '';
+  work.style.display = 'block';
+  barFill.style.width = '0%';
+  goBtn.disabled = true;
+  goBtn.textContent = 'Splitting…';
+
+  const prefix = ($('prefix').value.trim() || 'segment').replace(/[^\w\-]/g, '_');
+  const ext = mode === 'copy' ? (sourceFile.name.split('.').pop().toLowerCase() || 'mp4') : 'mp4';
+
+  try {
+    await bootFFmpeg();
+
+    log(`Source: ${tc(sourceDuration)} · ${plan.length} segment(s) at ${segLength}s · ${mode === 'copy' ? 'Fast' : 'Exact'} mode`, 'hi');
+
+    const inName = 'input.' + (sourceFile.name.split('.').pop().toLowerCase() || 'mp4');
+    await ffmpeg.writeFile(inName, new Uint8Array(await sourceFile.arrayBuffer()));
+
+    const produced = [];
+    for(const p of plan){
+      const outName = `${prefix}_${String(p.index).padStart(2,'0')}.${ext}`;
+      log(`[${p.index}/${plan.length}] ${outName} — from ${tc(p.start)}…`);
+
+      const args = mode === 'copy'
+        ? ['-ss', String(p.start), '-i', inName, '-t', String(p.duration),
+           '-c', 'copy', '-avoid_negative_ts', 'make_zero', outName]
+        : ['-ss', String(p.start), '-i', inName, '-t', String(p.duration),
+           '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23',
+           '-c:a', 'aac', '-b:a', '128k', '-avoid_negative_ts', 'make_zero', outName];
+
+      await ffmpeg.exec(args);
+      const data = await ffmpeg.readFile(outName);
+      const blob = new Blob([data.buffer], { type: 'video/mp4' });
+      await ffmpeg.deleteFile(outName);
+
+      produced.push({ index: p.index, name: outName, blob, planned: p.duration });
+      barFill.style.width = (p.index / plan.length * 100) + '%';
+    }
+
+    await ffmpeg.deleteFile(inName);
+    log('Measuring output…');
+
+    // ---- verification pass ----
+    let total = 0, drift = 0;
+    for(const seg of produced){
+      const actual = await measure(seg.blob);
+      seg.actual = actual;
+      if(isFinite(actual)){
+        total += actual;
+        drift = Math.max(drift, Math.abs(actual - seg.planned));
+      }
+      const url = URL.createObjectURL(seg.blob);
+      objectUrls.push(url);
+
+      const off = isFinite(actual) ? actual - seg.planned : 0;
+      const warn = Math.abs(off) > 0.5;
+
+      const row = document.createElement('div');
+      row.className = 'res';
+      row.innerHTML =
+        `<span class="idx">${String(seg.index).padStart(2,'0')}</span>
+         <span class="meta">
+           <span class="nm">${seg.name}</span>
+           <span class="du${warn?' warn':''}">${isFinite(actual)?tc(actual):'—'}
+             ${warn ? `(${off>0?'+':''}${off.toFixed(2)}s vs planned)` : ''}</span>
+         </span>`;
+      const a = document.createElement('a');
+      a.href = url; a.download = seg.name; a.textContent = 'Save';
+      row.appendChild(a);
+      resList.appendChild(row);
+    }
+
+    $('resCount').textContent = produced.length + ' file' + (produced.length===1?'':'s');
+    verifyEl.innerHTML =
+      `Measured total <b>${tc(total)}</b> against source <b>${tc(sourceDuration)}</b>` +
+      ` · largest deviation from planned length <b>${drift.toFixed(2)}s</b>` +
+      (drift > 0.5 ? ' — switch to Exact mode if that matters.' : '.');
+
+    results.style.display = 'block';
+    log('Done.', 'ok');
+
+  } catch(err){
+    const msg = (err && err.message) ? err.message : String(err);
+    log('Failed: ' + msg, 'err');
+    if(!ffmpegReady){
+      log('The video engine never finished loading. Check your connection, and make sure the page is served over http:// (not opened as a file).');
+    } else {
+      log('The engine loaded but the split failed — most likely the browser ran out of memory. Try a shorter source or the desktop version.');
+    }
+  } finally {
+    goBtn.disabled = false;
+    drawStrip();
+  }
+});
+</script>
+</body>
+</html>
