@@ -333,6 +333,25 @@ input:focus{outline:none;border-color:var(--accent)}
 }
 .res a:hover{background:rgba(123,108,255,.12)}
 .res a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.res a.saving{color:var(--muted);border-color:var(--line);pointer-events:none}
+.res a.saved{color:var(--ok);border-color:var(--ok);background:rgba(78,214,161,.08)}
+
+#saveAll{
+  width:100%;
+  margin-top:16px;
+  background:transparent;
+  color:var(--accent);
+  border:1px solid var(--accent-dim);
+  border-radius:7px;
+  font-family:var(--mono);
+  font-size:13px;
+  padding:12px;
+  cursor:pointer;
+  transition:background .15s;
+}
+#saveAll:hover:not(:disabled){background:rgba(123,108,255,.1)}
+#saveAll:disabled{color:var(--muted);border-color:var(--line);cursor:default}
+#saveAll:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .verify{
   font-size:12.5px;
@@ -444,6 +463,7 @@ footer b{color:var(--text);font-weight:500}
   <section class="panel" id="results">
     <p class="panel-label"><span>Segments</span><span id="resCount"></span></p>
     <div id="resList"></div>
+    <button id="saveAll">Save all segments</button>
     <p class="verify" id="verify"></p>
   </section>
 
@@ -696,6 +716,39 @@ function measure(blob){
   });
 }
 
+// ---------- save feedback ----------
+// The segment is already built in memory by this point, so there is nothing
+// to measure progress against — what's useful is confirming the tap landed
+// and the handoff to the browser finished.
+let savedSegments = [];
+
+function markSaving(a){
+  a.classList.add('saving');
+  a.textContent = 'Saving…';
+  setTimeout(() => {
+    a.classList.remove('saving');
+    a.classList.add('saved');
+    a.textContent = 'Saved ✓';
+  }, 700);
+}
+
+$('saveAll').addEventListener('click', async () => {
+  const btn = $('saveAll');
+  const pending = savedSegments.filter(s => s.link && !s.link.classList.contains('saved'));
+  if(!pending.length){ btn.textContent = 'All segments saved ✓'; return; }
+
+  btn.disabled = true;
+  for(let i = 0; i < pending.length; i++){
+    btn.textContent = `Saving ${i+1} of ${pending.length}…`;
+    pending[i].link.click();
+    // space the downloads out; firing them all at once makes mobile browsers
+    // drop some of them silently
+    await new Promise(r => setTimeout(r, 900));
+  }
+  btn.textContent = 'All segments saved ✓';
+  btn.disabled = false;
+});
+
 // ---------- run ----------
 goBtn.addEventListener('click', async () => {
   const plan = segmentPlan();
@@ -772,11 +825,16 @@ goBtn.addEventListener('click', async () => {
          </span>`;
       const a = document.createElement('a');
       a.href = url; a.download = seg.name; a.textContent = 'Save';
+      a.addEventListener('click', () => markSaving(a));
       row.appendChild(a);
+      seg.link = a;
       resList.appendChild(row);
     }
 
     $('resCount').textContent = produced.length + ' file' + (produced.length===1?'':'s');
+    savedSegments = produced;
+    $('saveAll').disabled = false;
+    $('saveAll').textContent = `Save all ${produced.length} segment${produced.length===1?'':'s'}`;
     verifyEl.innerHTML =
       `Measured total <b>${tc(total)}</b> against source <b>${tc(sourceDuration)}</b>` +
       ` · largest deviation from planned length <b>${drift.toFixed(2)}s</b>` +
